@@ -7,7 +7,8 @@
 // Config
 angular.module('iso.config', [])
     .value('iso.config', {
-        debug: true
+        debug: true,
+        refreshDelay: 0
     });
 
 // Modules
@@ -67,7 +68,23 @@ angular.module("iso.controllers", ["iso.config", "iso.services"])
       $scope.isoMode = isoInit.isoMode || "addItems";
       return $timeout(function() {
         var opts = optionsStore.retrieve();
-        isotopeContainer.isotope(opts);
+
+        if (!(window.jQuery && isotopeContainer.isotope(opts)))
+        {
+            // create jqLite wrapper
+            var instance = new Isotope(isotopeContainer[0], opts);
+
+            isotopeContainer.isotope = function(options, callback) {
+                var args = Array.prototype.slice.call( arguments, 1 );
+                if ( typeof options === 'string' ) {
+                    return(instance[options].apply(instance, args));
+                } else {
+                    instance.option( options );
+                    instance._init( callback );
+                }
+           }
+        }
+
         postInitialized = true;
       });
     };
@@ -122,7 +139,8 @@ angular.module("iso.controllers", ["iso.config", "iso.services"])
       return methodHandler(message, opt);
     });
     $scope.removeElement = function(element) {
-      return isotopeContainer && isotopeContainer.isotope("remove", element);
+      // isotope's remove method invokes relayout which creates situation in angular in case of routeChange away from isotope page
+      //return isotopeContainer && isotopeContainer.isotope("remove", element);
     };
   }
 ])
@@ -137,10 +155,10 @@ angular.module("iso.controllers", ["iso.config", "iso.services"])
         getSortData: methods
       });
     };
-    $scope.optSortData = function(item, index) {
+    $scope.optSortData = function(index, item) {
       var $item, elementSortData, fun, genSortDataClosure, selector, sortKey, type;
       elementSortData = {};
-      $item = $(item);
+      $item = angular.element(item);
       selector = $item.attr("ok-sel");
       type = $item.attr("ok-type");
       sortKey = $scope.getHash(selector);
@@ -156,14 +174,14 @@ angular.module("iso.controllers", ["iso.config", "iso.services"])
     $scope.createSortByDataMethods = function(elem) {
       var options, sortDataArray;
       options = $(elem);
-      sortDataArray = reduce($.map(options, $scope.optSortData));
+      sortDataArray = reduce(options.map($scope.optSortData));
       return sortDataArray;
     };
     reduce = function(list) {
       var reduction;
       reduction = {};
-      $.each(list, function(index, item) {
-        return $.extend(reduction, item);
+      angular.forEach(list, function(item, index) {
+        return angular.extend(reduction, item);
       });
       return reduction;
     };
@@ -268,11 +286,36 @@ angular.module("iso.directives")
       require: "^isotopeContainer",
       link: function(scope, element, attrs) {
 
+
+
         scope.setIsoElement(element);
         scope.$on('$destroy', function(message) {
           $rootScope.$broadcast(topics.MSG_REMOVE, element);
         });
+
         if (attrs.ngRepeat && true === scope.$last && "addItems" === scope.isoMode) {
+          //only refresh isotope if element height is already calculated
+          scope.$watch(function(){return element[0].offsetHeight;}, function(newVal, oldVal){
+            //console.log(newVal);
+            if (newVal > 0) {
+              $timeout((function() {
+                return scope.refreshIso();
+              }), config.refreshDelay || 0);
+            }
+          });
+        }
+        if (!attrs.ngRepeat) {
+          //only refresh isotope if element height is already calculated
+          scope.$watch(function(){return element[0].offsetHeight;}, function(newVal, oldVal){
+            //console.log(newVal);
+            if (newVal > 0) {
+              $timeout((function() {
+                return scope.refreshIso();
+              }), config.refreshDelay || 0);
+            }
+          });
+        }
+        /*if (attrs.ngRepeat && true === scope.$last && "addItems" === scope.isoMode) {
           element.ready(function() {
             return $timeout((function() {
               return scope.refreshIso();
@@ -285,7 +328,7 @@ angular.module("iso.directives")
               return scope.refreshIso();
             }), config.refreshDelay || 0);
           });          
-        }
+        }*/
         return element;
       }
     };
@@ -297,14 +340,14 @@ angular.module("iso.directives")
       controller: "isoSortByDataController",
       link: function(scope, element, attrs) {
         var methSet, methods, optEvent, optKey, optionSet, options;
-        optionSet = $(element);
+        optionSet = angular.element(element);
         optKey = optionSet.attr("ok-key");
         optEvent = "iso-opts";
         options = {};
         methSet = optionSet.find("[ok-sel]");
         methSet.each(function(index) {
           var $this;
-          $this = $(this);
+          $this = angular.element(this);
           return $this.attr("ok-sortby-key", scope.getHash($this.attr("ok-sel")));
         });
         methods = scope.createSortByDataMethods(methSet);
@@ -343,7 +386,7 @@ angular.module("iso.directives")
         methSet = optionSet.find("[ok-sel]");
         methSet.each(function(index) {
           var $this;
-          $this = $(this);
+          $this = angular.element(this);
           return $this.attr("ok-sortby-key", scope.getHash($this.attr("ok-sel")));
         });
         methods = scope.createSortByDataMethods(methSet);
@@ -373,10 +416,10 @@ angular.module("iso.directives")
       doOption = function(event) {
         var selItem;
         event.preventDefault();
-        selItem = $(event.target);
-        if (selItem.hasClass(activeClass)) {
-          return false;
-        }
+        selItem = angular.element(event.target);
+        //if (selItem.hasClass(activeClass)) {
+        //  return false;
+        //}
         optionSet.find(activeSelector).removeClass(activeClass);
         selItem.addClass(activeClass);
         emitOption(createOptions(selItem));
@@ -406,7 +449,7 @@ angular.module("iso.directives")
         storedOptions = config.defaultOptions || {};
         return {
           store: function(option) {
-            storedOptions = $.extend.apply(null, [true, storedOptions].concat(option));
+            angular.extend(storedOptions, option);
             return storedOptions;
           },
           retrieve: function() {
