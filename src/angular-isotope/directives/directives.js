@@ -38,12 +38,35 @@ angular.module("iso.directives")
       restrict: "A",
       require: "^isotopeContainer",
       link: function(scope, element, attrs) {
-
+	  
         scope.setIsoElement(element);
         scope.$on('$destroy', function(message) {
           $rootScope.$broadcast(topics.MSG_REMOVE, element);
         });
+
         if (attrs.ngRepeat && true === scope.$last && "addItems" === scope.isoMode) {
+          //only refresh isotope if element height is already calculated
+          scope.$watch(function(){return element[0].offsetHeight;}, function(newVal, oldVal){
+            //console.log(newVal);
+            if (newVal > 0 && true === scope.$last) {
+              $timeout((function() {
+                return scope.refreshIso();
+              }), config.refreshDelay || 0);
+            }
+          });
+        }
+        if (!attrs.ngRepeat) {
+          //only refresh isotope if element height is already calculated
+          scope.$watch(function(){return element[0].offsetHeight;}, function(newVal, oldVal){
+            //console.log(newVal);
+            if (newVal > 0) {
+              $timeout((function() {
+                return scope.refreshIso();
+              }), config.refreshDelay || 0);
+            }
+          });
+        }
+        /*if (attrs.ngRepeat && true === scope.$last && "addItems" === scope.isoMode) {
           element.ready(function() {
             return $timeout((function() {
               return scope.refreshIso();
@@ -56,7 +79,7 @@ angular.module("iso.directives")
               return scope.refreshIso();
             }), config.refreshDelay || 0);
           });          
-        }
+        }*/
         return element;
       }
     };
@@ -68,14 +91,14 @@ angular.module("iso.directives")
       controller: "isoSortByDataController",
       link: function(scope, element, attrs) {
         var methSet, methods, optEvent, optKey, optionSet, options;
-        optionSet = $(element);
+        optionSet = angular.element(element);
         optKey = optionSet.attr("ok-key");
         optEvent = "iso-opts";
         options = {};
         methSet = optionSet.find("[ok-sel]");
         methSet.each(function(index) {
           var $this;
-          $this = $(this);
+          $this = angular.element(this);
           return $this.attr("ok-sortby-key", scope.getHash($this.attr("ok-sel")));
         });
         methods = scope.createSortByDataMethods(methSet);
@@ -114,7 +137,7 @@ angular.module("iso.directives")
         methSet = optionSet.find("[ok-sel]");
         methSet.each(function(index) {
           var $this;
-          $this = $(this);
+          $this = angular.element(this);
           return $this.attr("ok-sortby-key", scope.getHash($this.attr("ok-sel")));
         });
         methods = scope.createSortByDataMethods(methSet);
@@ -144,10 +167,10 @@ angular.module("iso.directives")
       doOption = function(event) {
         var selItem;
         event.preventDefault();
-        selItem = $(event.target);
-        if (selItem.hasClass(activeClass)) {
-          return false;
-        }
+        selItem = angular.element(event.target);
+        //if (selItem.hasClass(activeClass)) {
+        //  return false;
+        //}
         optionSet.find(activeSelector).removeClass(activeClass);
         selItem.addClass(activeClass);
         emitOption(createOptions(selItem));

@@ -285,9 +285,7 @@ angular.module("iso.directives")
       restrict: "A",
       require: "^isotopeContainer",
       link: function(scope, element, attrs) {
-
-
-
+	  
         scope.setIsoElement(element);
         scope.$on('$destroy', function(message) {
           $rootScope.$broadcast(topics.MSG_REMOVE, element);
@@ -297,7 +295,7 @@ angular.module("iso.directives")
           //only refresh isotope if element height is already calculated
           scope.$watch(function(){return element[0].offsetHeight;}, function(newVal, oldVal){
             //console.log(newVal);
-            if (newVal > 0) {
+            if (newVal > 0  && true === scope.$last) {
               $timeout((function() {
                 return scope.refreshIso();
               }), config.refreshDelay || 0);
