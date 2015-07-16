@@ -9,7 +9,13 @@ angular.module("iso.controllers", ["iso.config", "iso.services"])
     buffer = [];
     scope = "";
     isoMode = "";
+	var vm = this;
+    vm.allDestroyed = false;
     $scope.$on(onLayoutEvent, function(event) {});
+	$scope.$on('$destroy', function(message) {
+      console.log(66);
+      vm.allDestroyed = true;
+    });
     $scope.layoutEventEmit = function($elems, instance) {
       return $timeout(function() {
         return $scope.$apply(function() {
@@ -99,7 +105,14 @@ angular.module("iso.controllers", ["iso.config", "iso.services"])
       return methodHandler(message, opt);
     });
     $scope.removeElement = function(element) {
-      return isotopeContainer && isotopeContainer.isotope("remove", element);
+      if (isotopeContainer) {
+            var isotopeInstance = isotopeContainer.data('isotope');
+            isotopeInstance.$allAtoms = isotopeInstance.$allAtoms.not(element);
+            // isotope's remove method invokes relayout which creates situation in angular in case of routeChange away from isotope page
+            return true;//isotopeContainer && isotopeContainer.isotope("remove", element);
+          } else {
+            false;
+          }
     };
   }
 ])

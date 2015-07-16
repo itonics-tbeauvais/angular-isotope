@@ -33,7 +33,13 @@ angular.module("iso.controllers", ["iso.config", "iso.services"])
     buffer = [];
     scope = "";
     isoMode = "";
+    var vm = this;
+    vm.allDestroyed = false;
     $scope.$on(onLayoutEvent, function(event) {});
+    $scope.$on('$destroy', function(message) {
+      console.log(66);
+      vm.allDestroyed = true;
+    });
     $scope.layoutEventEmit = function($elems, instance) {
       return $timeout(function() {
         return $scope.$apply(function() {
@@ -139,8 +145,14 @@ angular.module("iso.controllers", ["iso.config", "iso.services"])
       return methodHandler(message, opt);
     });
     $scope.removeElement = function(element) {
-      // isotope's remove method invokes relayout which creates situation in angular in case of routeChange away from isotope page
-      //return isotopeContainer && isotopeContainer.isotope("remove", element);
+      if (isotopeContainer) {
+            var isotopeInstance = isotopeContainer.data('isotope');
+            isotopeInstance.$allAtoms = isotopeInstance.$allAtoms.not(element);
+            // isotope's remove method invokes relayout which creates situation in angular in case of routeChange away from isotope page
+            return true;//isotopeContainer && isotopeContainer.isotope("remove", element);
+          } else {
+            false;
+          }
     };
   }
 ])
@@ -284,11 +296,15 @@ angular.module("iso.directives")
     return {
       restrict: "A",
       require: "^isotopeContainer",
-      link: function(scope, element, attrs) {
-	  
+      link: function(scope, element, attrs, isotopeController) {
+
         scope.setIsoElement(element);
         scope.$on('$destroy', function(message) {
-          $rootScope.$broadcast(topics.MSG_REMOVE, element);
+          //only if the all things were not destroyed(not a route change)
+          if(!isotopeController.allDestroyed) {
+            console.log(88);
+            $rootScope.$broadcast(topics.MSG_REMOVE, element);
+          }
         });
 
         if (attrs.ngRepeat && true === scope.$last && "addItems" === scope.isoMode) {

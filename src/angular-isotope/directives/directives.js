@@ -37,11 +37,15 @@ angular.module("iso.directives")
     return {
       restrict: "A",
       require: "^isotopeContainer",
-      link: function(scope, element, attrs) {
+      link: function(scope, element, attrs, isotopeController) {
 	  
         scope.setIsoElement(element);
         scope.$on('$destroy', function(message) {
-          $rootScope.$broadcast(topics.MSG_REMOVE, element);
+          //only if the all things were not destroyed(not a route change)
+          if(!isotopeController.allDestroyed) {
+            console.log(88);
+            $rootScope.$broadcast(topics.MSG_REMOVE, element);
+          }
         });
 
         if (attrs.ngRepeat && true === scope.$last && "addItems" === scope.isoMode) {
