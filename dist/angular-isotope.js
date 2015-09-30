@@ -37,7 +37,7 @@ angular.module("iso.controllers", ["iso.config", "iso.services"])
     vm.allDestroyed = false;
     $scope.$on(onLayoutEvent, function(event) {});
     $scope.$on('$destroy', function(message) {
-      console.log(66);
+      //console.log(66);
       vm.allDestroyed = true;
     });
     $scope.layoutEventEmit = function($elems, instance) {
@@ -302,7 +302,7 @@ angular.module("iso.directives")
         scope.$on('$destroy', function(message) {
           //only if the all things were not destroyed(not a route change)
           if(!isotopeController.allDestroyed) {
-            console.log(88);
+            //console.log(88);
             $rootScope.$broadcast(topics.MSG_REMOVE, element);
           }
         });
